@@ -27,7 +27,11 @@ func makeLDAPServer(listenAddr string) *ldap.Server {
 	server.Handle(routes)
 
 	// listen on 10389 and serve
-	go server.ListenAndServe(listenAddr)
+	go func() {
+		if err := server.ListenAndServe(listenAddr); err != nil {
+			log.Printf("LDAP Listen Error: %s", err.Error())
+		}
+	}()
 
 	return server
 }

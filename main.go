@@ -1,28 +1,59 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
+	"strconv"
+	"time"
+
+	"gopkg.in/urfave/cli.v1"
 )
 
-var listenAddr string
-
-func init() {
-	flag.StringVar(&listenAddr, "listen-addr", "127.0.0.1:10389", "listen address")
-	flag.Parse()
-}
+var (
+	buildstamp = ""
+	githash    = "no githash provided"
+)
 
 func main() {
 
-	server := makeLDAPServer(listenAddr)
-	// When CTRL+C, SIGINT and SIGTERM signal occurs
-	// Then stop server gracefully
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	<-ch
-	close(ch)
+	app := cli.NewApp()
+	app.Name = "tunaccount"
+	app.EnableBashCompletion = true
+	cli.VersionPrinter = func(c *cli.Context) {
+		var builddate string
+		if buildstamp == "" {
+			builddate = "No build data provided"
+		} else {
+			ts, err := strconv.Atoi(buildstamp)
+			if err != nil {
+				builddate = "No build data provided"
+			} else {
+				t := time.Unix(int64(ts), 0)
+				builddate = t.String()
+			}
+		}
+		fmt.Printf(
+			"Version: %s\n"+
+				"Git Hash: %s\n"+
+				"Build Data: %s\n",
+			c.App.Version, githash, builddate,
+		)
+	}
 
-	server.Stop()
+	app.Commands = []cli.Command{
+		{
+			Name:   "daemon",
+			Usage:  "run tunaccount daemon",
+			Action: startDaemon,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "config, c",
+					Value: "/etc/tunaccount.conf",
+					Usage: "specify configuration file",
+				},
+			},
+		},
+	}
+
+	app.Run(os.Args)
 }
