@@ -16,6 +16,8 @@ const (
 	DBEnumMongo dbBackendEnum = iota
 )
 
+var dcfg DaemonConfig
+
 func (b *dbBackendEnum) UnmarshalText(text []byte) error {
 	s := string(text)
 	switch s {
@@ -32,6 +34,7 @@ type DaemonConfig struct {
 	DB   DatabaseConfig `toml:"database"`
 	LDAP LDAPConfig     `toml:"ldap"`
 	HTTP HTTPConfig     `toml:"http"`
+	TUNA TUNAConfig     `toml:"tunaccount"`
 }
 
 // A DatabaseConfig is the database config for tunaccount daemon
@@ -49,6 +52,7 @@ type DatabaseConfig struct {
 type LDAPConfig struct {
 	ListenAddr string `toml:"listen_addr" default:"127.0.0.1"`
 	ListenPort int    `toml:"listen_port" default:"389"`
+	Suffix     string `toml:"suffix"` // o=tuna
 }
 
 // An HTTPConfig is http server configs
@@ -57,42 +61,41 @@ type HTTPConfig struct {
 	ListenPort int    `toml:"listen_port" default:"9501"`
 }
 
-func newDefaultConfig() *DaemonConfig {
-	cfg := new(DaemonConfig)
-	var setDefault func(reflect.Value)
-	setDefault = func(v reflect.Value) {
-		for i := 0; i < v.NumField(); i++ {
-			vf := v.Field(i)
-			if vf.Kind() == reflect.Struct {
-				setDefault(vf)
-				continue
-			}
+// A TUNAConfig specifies application level configs
+type TUNAConfig struct {
+	MinimumUID int `toml:"minimum_uid" default:"2000"`
+	MinimumGID int `toml:"minimum_gid" default:"2000"`
+}
 
-			dv := v.Type().Field(i).Tag.Get("default")
-			if dv != "" && vf.CanSet() {
-				switch vf.Kind() {
-				case reflect.String:
-					vf.SetString(dv)
-				case reflect.Int:
-					iv, _ := strconv.Atoi(dv)
-					vf.SetInt(int64(iv))
-				}
+func setDefaultValues(v reflect.Value) {
+	for i := 0; i < v.NumField(); i++ {
+		vf := v.Field(i)
+		if vf.Kind() == reflect.Struct {
+			setDefaultValues(vf)
+			continue
+		}
+
+		dv := v.Type().Field(i).Tag.Get("default")
+		if dv != "" && vf.CanSet() {
+			switch vf.Kind() {
+			case reflect.String:
+				vf.SetString(dv)
+			case reflect.Int:
+				iv, _ := strconv.Atoi(dv)
+				vf.SetInt(int64(iv))
 			}
 		}
 	}
-
-	setDefault(reflect.ValueOf(cfg).Elem())
-	return cfg
 }
 
-func loadConfig(cfgFile string) (*DaemonConfig, error) {
-	cfg := newDefaultConfig()
+func loadDaemonConfig(cfgFile string) (*DaemonConfig, error) {
+	setDefaultValues(reflect.ValueOf(&dcfg).Elem())
 
 	if _, err := os.Stat(cfgFile); err == nil {
-		if _, err := toml.DecodeFile(cfgFile, cfg); err != nil {
+		if _, err := toml.DecodeFile(cfgFile, &dcfg); err != nil {
 			return nil, err
 		}
 	}
 
-	return cfg, nil
+	return &dcfg, nil
 }

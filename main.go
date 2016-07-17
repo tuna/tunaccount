@@ -48,7 +48,7 @@ func main() {
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "config, c",
-					Value: "/etc/tunaccount.conf",
+					Value: "/etc/tunaccountd.conf",
 					Usage: "specify configuration file",
 				},
 			},

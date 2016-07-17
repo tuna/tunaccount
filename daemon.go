@@ -12,7 +12,7 @@ import (
 func startDaemon(c *cli.Context) error {
 	cfgFile := c.String("config")
 
-	cfg, _ := loadConfig(cfgFile)
+	cfg, _ := loadDaemonConfig(cfgFile)
 
 	ldapListenAddr := fmt.Sprintf("%s:%d", cfg.LDAP.ListenAddr, cfg.LDAP.ListenPort)
 
