@@ -82,21 +82,39 @@ func (m *mongoCtx) FindUsers(filter bson.M, tag string) []User {
 // the keymap maps ldap attribute to mongo doc key, e.g. userldap2bson
 func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string) bson.M {
 	res := bson.M{}
+
 	switch f := filter.(type) {
 	case ldapMsg.FilterAnd:
 		cfilters := []bson.M{}
 		for _, child := range f {
-			cfilters = append(cfilters, ldapQueryToBson(child, keymap))
+			cf := ldapQueryToBson(child, keymap)
+			if len(cf) > 0 {
+				cfilters = append(cfilters, cf)
+			}
 		}
-		res["$and"] = cfilters
+		if len(cfilters) > 1 {
+			res["$and"] = cfilters
+		} else if len(cfilters) == 1 {
+			res = cfilters[0]
+		}
 	case ldapMsg.FilterOr:
 		cfilters := []bson.M{}
 		for _, child := range f {
-			cfilters = append(cfilters, ldapQueryToBson(child, keymap))
+			cf := ldapQueryToBson(child, keymap)
+			if len(cf) > 0 {
+				cfilters = append(cfilters, cf)
+			}
 		}
-		res["$or"] = cfilters
+		if len(cfilters) > 1 {
+			res["$or"] = cfilters
+		} else if len(cfilters) == 1 {
+			res = cfilters[0]
+		}
 	case ldapMsg.FilterNot:
-		res["$not"] = ldapQueryToBson(f.Filter, keymap)
+		cf := ldapQueryToBson(f.Filter, keymap)
+		if len(cf) > 0 {
+			res["$not"] = cf
+		}
 	case ldapMsg.FilterEqualityMatch:
 		lkey := string(f.AttributeDesc())
 		// attributes not listed in the keymap is ignored
@@ -140,7 +158,7 @@ func initMongo() error {
 	if c.User != "" && c.Password != "" {
 		url = url + fmt.Sprintf("%s:%s@", c.User, c.Password)
 	}
-	url = url + fmt.Sprintf("%s:%s/%s", c.Addr, c.Port, c.Name)
+	url = url + fmt.Sprintf("%s:%d/%s", c.Addr, c.Port, c.Name)
 
 	session, err := mgo.Dial(url)
 	if err != nil {

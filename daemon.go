@@ -11,8 +11,16 @@ import (
 
 func startDaemon(c *cli.Context) error {
 	cfgFile := c.String("config")
+	initLogger(true, true, false)
 
-	cfg, _ := loadDaemonConfig(cfgFile)
+	cfg, err := loadDaemonConfig(cfgFile)
+	if err != nil {
+		logger.Panic(err.Error())
+	}
+	err = initMongo()
+	if err != nil {
+		logger.Panicf("Error initializing mongodb: %s", err.Error())
+	}
 
 	ldapListenAddr := fmt.Sprintf("%s:%d", cfg.LDAP.ListenAddr, cfg.LDAP.ListenPort)
 

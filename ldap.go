@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"strconv"
 	"strings"
+
+	"gopkg.in/mgo.v2/bson"
 
 	ldapMsg "github.com/vjeantet/goldap/message"
 	ldap "github.com/vjeantet/ldapserver"
@@ -48,38 +52,52 @@ func handleAbandon(w ldap.ResponseWriter, m *ldap.Message) {
 // handleBind handles simple authentication
 func handleBind(w ldap.ResponseWriter, m *ldap.Message) {
 	r := m.GetBindRequest()
+	logger.Debugf("Request bind: %s", string(r.Name()))
+
 	res := ldap.NewBindResponse(ldap.LDAPResultSuccess)
 	if r.AuthenticationChoice() == "simple" {
-		if string(r.Name()) == "" {
-			log.Printf("Bind succeed User=%s, Pass=%#v", string(r.Name()), r.Authentication())
+		dn := string(r.Name()) // uid=xxxx,ou=xxx
+		if dn == "" {
+			// Allow anonymous bind
 			w.Write(res)
 			return
-		} else if string(r.Name()) == "uid=bigeagle,ou=people,o=tuna" {
-			if string(r.AuthenticationSimple()) == "123" {
-				log.Printf("Bind succeed User=%s, Pass=%#v", string(r.Name()), r.Authentication())
+		}
+		cnPair := strings.Split(dn, ",")[0]
+		cn := strings.Split(cnPair, "=")[1]
+
+		mg := getMongo()
+		defer mg.Close()
+
+		logger.Debugf("Filter user: %s", cn)
+		users := mg.FindUsers(bson.M{"username": cn}, "")
+		if len(users) > 0 {
+			user := users[0]
+			logger.Debugf("User: %#v", user)
+			pass := string(r.AuthenticationSimple())
+			if user.Authenticate(pass) {
+				logger.Debugf("Successfully authenticated user: %s", user.Username)
 				w.Write(res)
 				return
 			}
+			res.SetResultCode(ldap.LDAPResultInvalidCredentials)
+			res.SetDiagnosticMessage("invalid credentials")
+		} else {
+			res.SetResultCode(ldap.LDAPResultNoSuchObject)
+			res.SetDiagnosticMessage("User not found")
 		}
-		log.Printf("Bind failed User=%s, Pass=%#v", string(r.Name()), r.Authentication())
-		res.SetResultCode(ldap.LDAPResultInvalidCredentials)
-		res.SetDiagnosticMessage("invalid credentials")
 	} else {
 		res.SetResultCode(ldap.LDAPResultUnwillingToPerform)
 		res.SetDiagnosticMessage("Authentication choice not supported")
 	}
-
 	w.Write(res)
 }
 
 // handle search function
 func handleSearchTUNA(w ldap.ResponseWriter, m *ldap.Message) {
 	r := m.GetSearchRequest()
-	log.Printf("Request BaseDn=%s", r.BaseObject())
-	log.Printf("Request Filter=%s", r.Filter())
-	log.Printf("Request FilterString=%s", r.FilterString())
-	log.Printf("Request Attributes=%s", r.Attributes())
-	log.Printf("Request TimeLimit=%d", r.TimeLimit().Int())
+	logger.Debugf("Request BaseDN: %s", r.BaseObject())
+	logger.Debugf("Request Filter: %s", r.FilterString())
+	logger.Debugf("Request Attributes: %s", r.Attributes())
 
 	// Handle Stop Signal (server stop / client disconnected / Abandoned request....)
 	select {
@@ -89,55 +107,27 @@ func handleSearchTUNA(w ldap.ResponseWriter, m *ldap.Message) {
 	default:
 	}
 
-	var makeFilter func(ldapMsg.Filter, []ldapMsg.FilterEqualityMatch) []ldapMsg.FilterEqualityMatch
-	makeFilter = func(packet ldapMsg.Filter, acc []ldapMsg.FilterEqualityMatch) []ldapMsg.FilterEqualityMatch {
-		switch f := packet.(type) {
-		case ldapMsg.FilterAnd:
-			for _, child := range f {
-				cFilters := makeFilter(child, []ldapMsg.FilterEqualityMatch{})
-				acc = append(acc, cFilters...)
-			}
-			return acc
-		case ldapMsg.FilterEqualityMatch:
-			return append(acc, f)
-		}
-		return []ldapMsg.FilterEqualityMatch{}
-	}
-
-	filters := makeFilter(r.Filter(), []ldapMsg.FilterEqualityMatch{})
-
-	e := ldap.NewSearchResultEntry("uid=bigeagle,ou=people,o=tuna")
-	e.AddAttribute("uid", "bigeagle")
-	e.AddAttribute("cn", "bigeagle")
-	e.AddAttribute("uidNumber", "1100")
-	e.AddAttribute("gidNumber", "1001")
-	e.AddAttribute("loginShell", "/bin/bash")
-	e.AddAttribute("homeDirectory", "/home/bigeagle")
-	e.AddAttribute("userPassword", "{SSHA}/Sq+jS8CZM8e+DAFJkTnVtnIuEU/FwYz")
-	e.AddAttribute("objectClass", "top")
-	e.AddAttribute("objectClass", "posixAccount")
-	e.AddAttribute("objectClass", "shadowAccount")
-	e.AddAttribute("gecos", "")
-	e.AddAttribute("shadowMax", "99999")
-
-	var isBigEagle = true
-	for _, f := range filters {
-		log.Printf("%v=%v", f.AttributeDesc(), f.AssertionValue())
-		switch strings.ToLower(string(f.AttributeDesc())) {
-		case "objectclass":
-			continue
-		case "uid":
-			if string(f.AssertionValue()) != "bigeagle" {
-				isBigEagle = false
-			}
-		}
-	}
-
-	log.Printf("isBigEagle: %v", isBigEagle)
-	if isBigEagle {
+	mg := getMongo()
+	defer mg.Close()
+	filter := ldapQueryToBson(r.Filter(), userldap2bson)
+	logger.Debugf("Mongo Filter: %#v", filter)
+	users := mg.FindUsers(filter, "")
+	for _, u := range users {
+		e := ldap.NewSearchResultEntry(fmt.Sprintf("uid=%s,ou=people,o=tuna", u.Username))
+		e.AddAttribute("uid", ldapMsg.AttributeValue(u.Username))
+		e.AddAttribute("cn", ldapMsg.AttributeValue(u.Username))
+		e.AddAttribute("uidNumber", ldapMsg.AttributeValue(strconv.Itoa(u.UID)))
+		e.AddAttribute("gidNumber", ldapMsg.AttributeValue(strconv.Itoa(u.GID)))
+		e.AddAttribute("loginShell", ldapMsg.AttributeValue(u.LoginShell))
+		e.AddAttribute("homeDirectory", ldapMsg.AttributeValue(fmt.Sprintf("/home/%s", u.Username)))
+		e.AddAttribute("userPassword", "{SSHA}/Sq+jS8CZM8e+DAFJkTnVtnIuEU/FwYz")
+		e.AddAttribute("objectClass", "top")
+		e.AddAttribute("objectClass", "posixAccount")
+		e.AddAttribute("objectClass", "shadowAccount")
+		e.AddAttribute("gecos", ldapMsg.AttributeValue(u.Name))
+		e.AddAttribute("shadowMax", "99999")
 		w.Write(e)
 	}
-
 	res := ldap.NewSearchResultDoneResponse(ldap.LDAPResultSuccess)
 	w.Write(res)
 }

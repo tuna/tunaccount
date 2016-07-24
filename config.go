@@ -41,7 +41,7 @@ type DaemonConfig struct {
 type DatabaseConfig struct {
 	Backend  dbBackendEnum     `toml:"backend"`
 	Addr     string            `toml:"addr" default:"127.0.0.1"`
-	Port     string            `toml:"port" default:"27017"`
+	Port     int               `toml:"port" default:"27017"`
 	Name     string            `toml:"name" default:"tunaccount"`
 	User     string            `toml:"user"`
 	Password string            `toml:"password"`
@@ -93,6 +93,7 @@ func loadDaemonConfig(cfgFile string) (*DaemonConfig, error) {
 
 	if _, err := os.Stat(cfgFile); err == nil {
 		if _, err := toml.DecodeFile(cfgFile, &dcfg); err != nil {
+			logger.Errorf("Error parsing config file: %s", err.Error())
 			return nil, err
 		}
 	}
