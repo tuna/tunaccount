@@ -16,8 +16,6 @@ type mongoCtx struct {
 
 var (
 	_mongo *mongoCtx
-	// seq start value
-	seqStart map[string]int
 
 	mgoIndexes = map[string]([]mgo.Index){
 		mgoUserColl: []mgo.Index{
@@ -62,10 +60,26 @@ func (m *mongoCtx) PosixGroupColl() *mgo.Collection {
 	return m.session.DB(m.dbname).C(mgoPosixGroupColl)
 }
 
-func (m *mongoCtx) ConterColl() *mgo.Collection {
+func (m *mongoCtx) CounterColl() *mgo.Collection {
 	return m.session.DB(m.dbname).C(mgoCounterColl)
 }
 
+// FindUsers returns the user list that matches filter and has a specified tag
+func (m *mongoCtx) FindUsers(filter bson.M, tag string) []User {
+	var results []User
+
+	filters := []bson.M{filter, bson.M{"is_active": true}}
+
+	if tag != "" {
+		filters = append(filters, bson.M{"tags": tag})
+	}
+
+	m.UserColl().Find(bson.M{"$and": filters}).All(&results)
+	return results
+}
+
+// ldapQueryToBson convers an LDAP query to BSON filter
+// the keymap maps ldap attribute to mongo doc key, e.g. userldap2bson
 func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string) bson.M {
 	res := bson.M{}
 	switch f := filter.(type) {
@@ -85,6 +99,7 @@ func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string) bson.M {
 		res["$not"] = ldapQueryToBson(f.Filter, keymap)
 	case ldapMsg.FilterEqualityMatch:
 		lkey := string(f.AttributeDesc())
+		// attributes not listed in the keymap is ignored
 		if key, ok := keymap[lkey]; ok {
 			res[key] = f.AssertionValue()
 		}
@@ -102,23 +117,19 @@ func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string) bson.M {
 	return res
 }
 
-func (m *mongoCtx) getNextSeq(ID string, start int) int {
+func (m *mongoCtx) getNextSeq(ID string) int {
 	counter := mongoCounter{}
-
-	start, ok := seqStart[ID]
-	if !ok {
-		start = 0
-	}
 
 	change := mgo.Change{
 		Update: bson.M{
-			"$inc":         bson.M{"seq": 1},
-			"$setOnInsert": bson.M{"_id": ID, "seq": start},
+			"$inc": bson.M{"seq": 1},
 		},
-		Upsert:    true,
 		ReturnNew: true,
 	}
-	m.ConterColl().Find(bson.M{"_id": ID}).Apply(change, &counter)
+	_, err := m.CounterColl().Find(bson.M{"_id": ID}).Apply(change, &counter)
+	if err != nil {
+		panic(err)
+	}
 	return counter.Seq
 }
 
@@ -153,9 +164,14 @@ func initMongo() error {
 	}
 
 	// seqStart
-	seqStart = map[string]int{
+	seqStart := map[string]int{
 		"uid": dcfg.TUNA.MinimumGID,
 		"gid": dcfg.TUNA.MinimumGID,
+	}
+	for k, v := range seqStart {
+		if cnt, _ := _mongo.CounterColl().FindId(k).Count(); cnt == 0 {
+			_mongo.CounterColl().Insert(mongoCounter{ID: k, Seq: v})
+		}
 	}
 
 	return nil

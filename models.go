@@ -7,6 +7,7 @@ const (
 	mgoCounterColl    = "counters"
 )
 
+// keymaps
 var userldap2bson = map[string]string{
 	"uidNumber":  "_id",
 	"gidNumber":  "gid",
@@ -28,7 +29,7 @@ type User struct {
 	Email string `bson:"email" json:"email" ldap:"mail"`
 	Phone string `bson:"phone" json:"phone"`
 
-	Username   int    `bson:"username" json:"username" ldap:"uid,cn"`
+	Username   string `bson:"username" json:"username" ldap:"uid,cn"`
 	Password   string `bson:"password" json:"password" ldap:"userPassword"`
 	LoginShell string `bson:"login_shell" json:"login_shell" ldap:"loginShell"`
 
