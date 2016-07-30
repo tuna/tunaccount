@@ -54,10 +54,11 @@ func (u *User) Passwd(password string) *User {
 
 // A PosixGroup maps to a posix user group
 type PosixGroup struct {
-	GID     int      `bson:"gid" json:"gid" ldap:"gidNumber"`
-	Name    string   `bson:"name" json:"name"  ldap:"cn"`
-	Tag     string   `bson:"tags" json:"tags"`
-	Members []string `bson:"members" json:"members" ldap:"memberUid"`
+	GID      int      `bson:"gid" json:"gid" ldap:"gidNumber"`
+	Name     string   `bson:"name" json:"name"  ldap:"cn"`
+	Tags     string   `bson:"tags" json:"tags"`
+	IsActive bool     `bson:"is_active" json:"is_active"`
+	Members  []string `bson:"members" json:"members" ldap:"memberUid"`
 }
 
 // A FilterTag can be used to filter users and groups

@@ -78,6 +78,20 @@ func (m *mongoCtx) FindUsers(filter bson.M, tag string) []User {
 	return results
 }
 
+// FindGroups returns the group list that matches filter and has a specified tag
+func (m *mongoCtx) FindGroups(filter bson.M, tag string) []PosixGroup {
+	var results []PosixGroup
+
+	filters := []bson.M{filter, bson.M{"is_active": true}}
+
+	if tag != "" {
+		filters = append(filters, bson.M{"tags": tag})
+	}
+
+	m.PosixGroupColl().Find(bson.M{"$and": filters}).All(&results)
+	return results
+}
+
 // ldapQueryToBson convers an LDAP query to BSON filter
 // the keymap maps ldap attribute to mongo doc key, e.g. userldap2bson
 func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string) bson.M {
