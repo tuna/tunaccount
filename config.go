@@ -59,6 +59,7 @@ type LDAPConfig struct {
 type HTTPConfig struct {
 	ListenAddr string `toml:"listen_addr" default:"127.0.0.1"`
 	ListenPort int    `toml:"listen_port" default:"9501"`
+	SecretKey  string `toml:"secret_key"`
 }
 
 // A TUNAConfig specifies application level configs
