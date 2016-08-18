@@ -67,6 +67,12 @@ func main() {
 			Action:    importFiles,
 			ArgsUsage: "[files...]",
 		},
+		{
+			Name:      "passwd",
+			Usage:     "set password of a user",
+			Action:    changePasswd,
+			ArgsUsage: "[user]",
+		},
 	}
 
 	app.Run(os.Args)
