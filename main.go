@@ -54,11 +54,18 @@ func main() {
 			Name:   "daemon",
 			Usage:  "run tunaccount daemon",
 			Action: startDaemon,
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "debug",
+					Usage: "enable debug",
+				},
+			},
 		},
 		{
-			Name:   "import",
-			Usage:  "import json files to tunaccount",
-			Action: importFiles,
+			Name:      "import",
+			Usage:     "import json files to tunaccount",
+			Action:    importFiles,
+			ArgsUsage: "[files...]",
 		},
 	}
 
