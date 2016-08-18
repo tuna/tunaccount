@@ -29,8 +29,8 @@ func makeLDAPServer(listenAddr string) *ldap.Server {
 
 	// Regexes
 	tagRegex = regexp.MustCompile(`tag=([\w-]+)`)
-	userRegex = regexp.MustCompile(`uid=([\w-]+)`)
-	groupRegex = regexp.MustCompile(`cn=([\w-]+)`)
+	userRegex = regexp.MustCompile(`(uid)=([\w-]+)`)
+	groupRegex = regexp.MustCompile(`(cn)=([\w-]+)`)
 
 	routes.Search(handleSearch)
 
@@ -126,6 +126,7 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 	segs := strings.Split(string(r.BaseObject()), ",")
 	var tag, ou string
 	var keymap map[string]string
+	baseFilter := bson.M{}
 	for _, seg := range segs {
 		switch seg {
 		case "ou=people", "ou=People", "ou=users", "ou=Users":
@@ -137,6 +138,14 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 		}
 		if tagRegex.MatchString(seg) {
 			tag = tagRegex.FindStringSubmatch(seg)[1]
+		} else if userRegex.MatchString(seg) {
+			fields := userRegex.FindStringSubmatch(seg)
+			key, val := fields[0], fields[1]
+			baseFilter[keymap[key]] = val
+		} else if groupRegex.MatchString(seg) {
+			fields := groupRegex.FindStringSubmatch(seg)
+			key, val := fields[0], fields[1]
+			baseFilter[keymap[key]] = val
 		}
 	}
 
@@ -147,6 +156,14 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 
 	// TODO: uid=xxx or cn=xxx should be considered in query -> filter building
 	filter := ldapQueryToBson(r.Filter(), keymap)
+	if len(filter) == 0 {
+		filter = baseFilter
+	} else {
+		filter = bson.M{"$and": []bson.M{
+			filter, baseFilter,
+		}}
+	}
+
 	logger.Debugf("Mongo Filter: %#v", filter)
 
 	if ou == "people" {
