@@ -40,30 +40,25 @@ func main() {
 		)
 	}
 
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:   "config, c",
+			Value:  "/etc/tunaccountd.conf",
+			Usage:  "specify configuration file",
+			EnvVar: "TUNACCOUNT_CONFIG_FILE",
+		},
+	}
+
 	app.Commands = []cli.Command{
 		{
 			Name:   "daemon",
 			Usage:  "run tunaccount daemon",
 			Action: startDaemon,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "config, c",
-					Value: "/etc/tunaccountd.conf",
-					Usage: "specify configuration file",
-				},
-			},
 		},
 		{
 			Name:   "import",
 			Usage:  "import json files to tunaccount",
 			Action: importFiles,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "config, c",
-					Value: "/etc/tunaccountd.conf",
-					Usage: "specify configuration file",
-				},
-			},
 		},
 	}
 
