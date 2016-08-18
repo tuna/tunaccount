@@ -196,6 +196,7 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 			}
 			e.AddAttribute("objectClass", "top")
 			e.AddAttribute("objectClass", "posixGroup")
+			w.Write(e)
 		}
 	}
 
