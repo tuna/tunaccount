@@ -25,12 +25,15 @@ func prepareConfig(cfgFile string) (*DaemonConfig, error) {
 
 func startDaemon(c *cli.Context) error {
 	initLogger(true, c.Bool("debug"), false)
+	logger.Notice("Debug mode: %v", c.Bool("debug"))
+
 	cfg, err := prepareConfig(c.GlobalString("config"))
 	if err != nil {
 		logger.Panic(err.Error())
 	}
 
 	ldapListenAddr := fmt.Sprintf("%s:%d", cfg.LDAP.ListenAddr, cfg.LDAP.ListenPort)
+	logger.Debugf("Listen LDAP Addr: %s", ldapListenAddr)
 
 	server := makeLDAPServer(ldapListenAddr)
 

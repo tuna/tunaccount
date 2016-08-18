@@ -24,10 +24,10 @@ func initLogger(verbose, debug, withSystemd bool) {
 	logging.SetBackend(logging.NewLogBackend(os.Stdout, "", 0))
 
 	if debug {
-		logging.SetLevel(logging.DEBUG, "tunasync")
+		logging.SetLevel(logging.DEBUG, "tunaccount")
 	} else if verbose {
-		logging.SetLevel(logging.INFO, "tunasync")
+		logging.SetLevel(logging.INFO, "tunaccount")
 	} else {
-		logging.SetLevel(logging.NOTICE, "tunasync")
+		logging.SetLevel(logging.NOTICE, "tunaccount")
 	}
 }
