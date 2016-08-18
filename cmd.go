@@ -28,6 +28,17 @@ func prepareConfig(cfgFile string) *DaemonConfig {
 	return cfg
 }
 
+func isRootUser() error {
+	curUser, err := user.Current()
+	if err != nil {
+		return errors.New("Cannot get current user")
+	}
+	if curUser.Uid != "0" {
+		return errors.New("Permission denied")
+	}
+	return nil
+}
+
 func startDaemon(c *cli.Context) error {
 	initLogger(true, c.Bool("debug"), false)
 	logger.Notice("Debug mode: %v", c.Bool("debug"))
@@ -128,17 +139,6 @@ func cmdPasswd(c *cli.Context) error {
 	return nil
 }
 
-func isRootUser() error {
-	curUser, err := user.Current()
-	if err != nil {
-		return errors.New("Cannot get current user")
-	}
-	if curUser.Uid != "0" {
-		return errors.New("Permission denied")
-	}
-	return nil
-}
-
 func cmdUseradd(c *cli.Context) error {
 	if c.NArg() != 1 || c.String("email") == "" || c.String("name") == "" {
 		fmt.Println("Username, Name and Email are required\n")
@@ -228,6 +228,11 @@ func importFiles(c *cli.Context) error {
 	if c.NArg() < 1 {
 		logger.Error("At least 1 file should be specified")
 		return errors.New("Invalid arguments")
+	}
+
+	if err := isRootUser(); err != nil {
+		logger.Error(err.Error())
+		return err
 	}
 
 	m := getMongo()
