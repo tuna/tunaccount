@@ -124,9 +124,9 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 
 	// determine people/group and tag
 	segs := strings.Split(string(r.BaseObject()), ",")
-	var tag, ou string
-	var keymap map[string]string
 	baseFilter := bson.M{}
+	var tag, ou, baseKey, baseVal string
+	var keymap map[string]string
 	for _, seg := range segs {
 		switch seg {
 		case "ou=people", "ou=People", "ou=users", "ou=Users":
@@ -140,12 +140,10 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 			tag = tagRegex.FindStringSubmatch(seg)[1]
 		} else if userRegex.MatchString(seg) {
 			fields := userRegex.FindStringSubmatch(seg)
-			key, val := fields[0], fields[1]
-			baseFilter[keymap[key]] = val
+			baseKey, baseVal = fields[0], fields[1]
 		} else if groupRegex.MatchString(seg) {
 			fields := groupRegex.FindStringSubmatch(seg)
-			key, val := fields[0], fields[1]
-			baseFilter[keymap[key]] = val
+			baseKey, baseVal = fields[0], fields[1]
 		}
 	}
 
@@ -154,7 +152,10 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 		return
 	}
 
-	// TODO: uid=xxx or cn=xxx should be considered in query -> filter building
+	if baseKey != "" {
+		baseFilter[keymap[baseKey]] = baseVal
+	}
+
 	filter := ldapQueryToBson(r.Filter(), keymap)
 	if len(filter) == 0 {
 		filter = baseFilter
