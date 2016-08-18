@@ -47,9 +47,10 @@ func main() {
 			Action: startDaemon,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "config, c",
-					Value: "/etc/tunaccountd.conf",
-					Usage: "specify configuration file",
+					Name:   "config, c",
+					Value:  "/etc/tunaccountd.conf",
+					Usage:  "specify configuration file",
+					EnvVar: "TUNACCOUNT_CONFIG_FILE",
 				},
 			},
 		},
@@ -59,9 +60,10 @@ func main() {
 			Action: importFiles,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "config, c",
-					Value: "/etc/tunaccountd.conf",
-					Usage: "specify configuration file",
+					Name:   "config, c",
+					Value:  "/etc/tunaccountd.conf",
+					Usage:  "specify configuration file",
+					EnvVar: "TUNACCOUNT_CONFIG_FILE",
 				},
 			},
 		},

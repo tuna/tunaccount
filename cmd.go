@@ -65,7 +65,7 @@ func importFiles(c *cli.Context) error {
 		if err != nil {
 			logger.Errorf("Error importing %s: %s", file, err.Error())
 		} else {
-			logger.Notice("Successfully imported %s")
+			logger.Notice("Successfully imported %s", file)
 		}
 	}
 	return nil
