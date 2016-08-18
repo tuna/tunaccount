@@ -67,14 +67,23 @@ func (m *mongoCtx) CounterColl() *mgo.Collection {
 // FindUsers returns the user list that matches filter and has a specified tag
 func (m *mongoCtx) FindUsers(filter bson.M, tag string) []User {
 	var results []User
+	isAdmin := bson.M{"is_admin": true}
+	isActive := bson.M{"is_active": true}
 
-	filters := []bson.M{filter, bson.M{"is_active": true}}
+	filters := []bson.M{filter, isActive}
 
 	if tag != "" {
 		filters = append(filters, bson.M{"tags": tag})
 	}
 
-	m.UserColl().Find(bson.M{"$and": filters}).All(&results)
+	m.UserColl().
+		Find(bson.M{
+			"$or": []bson.M{
+				bson.M{"$and": []bson.M{filter, isActive, isAdmin}},
+				bson.M{"$and": filters},
+			},
+		}).
+		All(&results)
 	return results
 }
 
@@ -82,10 +91,10 @@ func (m *mongoCtx) FindUsers(filter bson.M, tag string) []User {
 func (m *mongoCtx) FindGroups(filter bson.M, tag string) []PosixGroup {
 	var results []PosixGroup
 
-	filters := []bson.M{filter, bson.M{"is_active": true}}
-
-	if tag != "" {
-		filters = append(filters, bson.M{"tags": tag})
+	filters := []bson.M{
+		filter,
+		bson.M{"is_active": true},
+		bson.M{"tag": bson.M{"$in": []string{tag, ""}}},
 	}
 
 	m.PosixGroupColl().Find(bson.M{"$and": filters}).All(&results)

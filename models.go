@@ -56,7 +56,7 @@ func (u *User) Passwd(password string) *User {
 type PosixGroup struct {
 	GID      int      `bson:"gid" json:"gid" ldap:"gidNumber"`
 	Name     string   `bson:"name" json:"name" ldap:"cn"`
-	Tags     string   `bson:"tags" json:"tags"`
+	Tag      string   `bson:"tag" json:"tag"`
 	IsActive bool     `bson:"is_active" json:"is_active"`
 	Members  []string `bson:"members" json:"members" ldap:"memberUid"`
 }
