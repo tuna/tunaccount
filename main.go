@@ -98,6 +98,26 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:  "tag",
+			Usage: "tag management",
+			Subcommands: []cli.Command{
+				{
+					Name:  "new",
+					Usage: "add new tag",
+				},
+				{
+					Name:      "user",
+					Usage:     "tag a user",
+					ArgsUsage: "<tag>",
+				},
+				{
+					Name:      "group",
+					Usage:     "tag a group",
+					ArgsUsage: "<tag>",
+				},
+			},
+		},
 	}
 
 	app.Run(os.Args)
