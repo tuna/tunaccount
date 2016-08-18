@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	ldapMsg "github.com/vjeantet/goldap/message"
 	"gopkg.in/mgo.v2"
@@ -104,14 +103,14 @@ func (m *mongoCtx) FindGroups(filter bson.M, tag string) []PosixGroup {
 
 // ldapQueryToBson convers an LDAP query to BSON filter
 // the keymap maps ldap attribute to mongo doc key, e.g. userldap2bson
-func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string, scope *LDAPScope) bson.M {
+func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string) bson.M {
 	res := bson.M{}
 
 	switch f := filter.(type) {
 	case ldapMsg.FilterAnd:
 		cfilters := []bson.M{}
 		for _, child := range f {
-			cf := ldapQueryToBson(child, keymap, scope)
+			cf := ldapQueryToBson(child, keymap)
 			if len(cf) > 0 {
 				cfilters = append(cfilters, cf)
 			}
@@ -124,7 +123,7 @@ func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string, scope *LDA
 	case ldapMsg.FilterOr:
 		cfilters := []bson.M{}
 		for _, child := range f {
-			cf := ldapQueryToBson(child, keymap, scope)
+			cf := ldapQueryToBson(child, keymap)
 			if len(cf) > 0 {
 				cfilters = append(cfilters, cf)
 			}
@@ -135,21 +134,12 @@ func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string, scope *LDA
 			res = cfilters[0]
 		}
 	case ldapMsg.FilterNot:
-		cf := ldapQueryToBson(f.Filter, keymap, scope)
+		cf := ldapQueryToBson(f.Filter, keymap)
 		if len(cf) > 0 {
 			res["$not"] = cf
 		}
 	case ldapMsg.FilterEqualityMatch:
-		lkey := strings.ToLower(string(f.AttributeDesc()))
-		if lkey == "objectClass" {
-			val := string(f.AssertionValue())
-			switch val {
-			case "posixaccount", "shadowaccount":
-				*scope = ldapScopePeople
-			case "posixgroup":
-				*scope = ldapScopeGroups
-			}
-		}
+		lkey := string(f.AttributeDesc())
 		// attributes not listed in the keymap is ignored
 		if key, ok := keymap[lkey]; ok {
 			res[key] = f.AssertionValue()
