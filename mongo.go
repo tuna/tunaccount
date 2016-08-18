@@ -2,7 +2,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 
 	ldapMsg "github.com/vjeantet/goldap/message"
 	"gopkg.in/mgo.v2"
@@ -60,6 +62,10 @@ func (m *mongoCtx) PosixGroupColl() *mgo.Collection {
 	return m.session.DB(m.dbname).C(mgoPosixGroupColl)
 }
 
+func (m *mongoCtx) FilterTagColl() *mgo.Collection {
+	return m.session.DB(m.dbname).C(mgoFilterTagColl)
+}
+
 func (m *mongoCtx) CounterColl() *mgo.Collection {
 	return m.session.DB(m.dbname).C(mgoCounterColl)
 }
@@ -99,6 +105,23 @@ func (m *mongoCtx) FindGroups(filter bson.M, tag string) []PosixGroup {
 
 	m.PosixGroupColl().Find(bson.M{"$and": filters}).All(&results)
 	return results
+}
+
+func (m *mongoCtx) EnsureTag(tagName string) error {
+	coll := m.FilterTagColl()
+	cnt, _ := coll.Find(bson.M{"_id": tagName}).Count()
+	if cnt == 0 {
+		tagRegex := regexp.MustCompile(`[\w-]+`)
+		if !tagRegex.MatchString(tagName) {
+			return errors.New("Tag must only contains '0-9', 'a-z', 'A-z' and '-'")
+		}
+
+		tag := FilterTag{
+			Name: tagName,
+		}
+		return coll.Insert(tag)
+	}
+	return nil
 }
 
 // ldapQueryToBson convers an LDAP query to BSON filter

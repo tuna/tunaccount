@@ -105,16 +105,35 @@ func main() {
 				{
 					Name:  "new",
 					Usage: "add new tag",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "desc, d",
+							Usage: "tag description",
+						},
+					},
 				},
 				{
 					Name:      "user",
-					Usage:     "tag a user",
-					ArgsUsage: "<tag>",
+					Usage:     "tag users",
+					ArgsUsage: "<users>",
+					Action:    cmdTagUser,
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "tag, t",
+							Usage: "tag name (Required)",
+						},
+					},
 				},
 				{
 					Name:      "group",
-					Usage:     "tag a group",
-					ArgsUsage: "<tag>",
+					Usage:     "tag groups",
+					ArgsUsage: "<groups>",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "tag, t",
+							Usage: "tag name (Required)",
+						},
+					},
 				},
 			},
 		},

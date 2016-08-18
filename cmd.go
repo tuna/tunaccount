@@ -128,28 +128,32 @@ func cmdPasswd(c *cli.Context) error {
 	return nil
 }
 
+func isRootUser() error {
+	curUser, err := user.Current()
+	if err != nil {
+		return errors.New("Cannot get current user")
+	}
+	if curUser.Uid != "0" {
+		return errors.New("Permission denied")
+	}
+	return nil
+}
+
 func cmdUseradd(c *cli.Context) error {
 	if c.NArg() != 1 || c.String("email") == "" || c.String("name") == "" {
-		fmt.Println("Username, Name and Email is required\n")
+		fmt.Println("Username, Name and Email are required\n")
 		cli.ShowCommandHelp(c, "useradd")
 		return errors.New("Invalid arguments")
 	}
 
 	initLogger(true, false, false)
+
+	if err := isRootUser(); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
 	cfg := prepareConfig(c.GlobalString("config"))
-
-	curUser, err := user.Current()
-	if err != nil {
-		err := errors.New("Cannot get current user")
-		logger.Error(err.Error())
-		return err
-	}
-
-	if curUser.Uid != "0" {
-		err := errors.New("Permission denied")
-		logger.Error(err.Error())
-		return err
-	}
 
 	m := getMongo()
 	defer m.Close()
@@ -165,7 +169,7 @@ func cmdUseradd(c *cli.Context) error {
 		IsActive:   true,
 	}
 
-	err = m.UserColl().Insert(user)
+	err := m.UserColl().Insert(user)
 	if err != nil {
 		logger.Errorf("Failed to add user: %s", err.Error())
 		return err
@@ -173,6 +177,48 @@ func cmdUseradd(c *cli.Context) error {
 
 	logger.Noticef("Successfully created account: %s", user.Username)
 	return nil
+}
+
+func cmdTagUser(c *cli.Context) error {
+	if c.NArg() < 1 || c.String("tag") == "" {
+		fmt.Println("Username and tag are required\n")
+		cli.ShowCommandHelp(c, "user")
+		return errors.New("Invalid arguments")
+	}
+
+	initLogger(true, false, false)
+	if err := isRootUser(); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	prepareConfig(c.GlobalString("config"))
+
+	m := getMongo()
+	defer m.Close()
+
+	tag := c.String("tag")
+	if err := m.EnsureTag(tag); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	for _, username := range c.Args() {
+		selector := bson.M{"username": username}
+		users := m.FindUsers(selector, "")
+		if len(users) < 0 {
+			logger.Warningf("user %s does not exist", username)
+			continue
+		}
+		m.UserColl().Update(
+			selector, bson.M{
+				"$addToSet": bson.M{"tags": tag},
+			},
+		)
+	}
+
+	return nil
+
 }
 
 func importFiles(c *cli.Context) error {
