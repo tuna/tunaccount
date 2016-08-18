@@ -159,7 +159,7 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 	filter := ldapQueryToBson(r.Filter(), keymap)
 	if len(filter) == 0 {
 		filter = baseFilter
-	} else {
+	} else if len(baseFilter) > 0 {
 		filter = bson.M{"$and": []bson.M{
 			filter, baseFilter,
 		}}
