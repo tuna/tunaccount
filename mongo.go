@@ -165,6 +165,25 @@ func (m *mongoCtx) getNextSeq(ID string) int {
 	return counter.Seq
 }
 
+func (m *mongoCtx) ensureCounterMin(ID string, val int) {
+
+	err := m.CounterColl().
+		Update(bson.M{
+			"$and": []bson.M{
+				bson.M{"_id": ID},
+				bson.M{"seq": bson.M{"$lt": val}},
+			},
+		}, bson.M{
+			"$set": bson.M{"seq": val},
+		})
+
+	if err != nil {
+		if err != mgo.ErrNotFound {
+			panic(err)
+		}
+	}
+}
+
 func initMongo() error {
 
 	c := dcfg.DB

@@ -55,7 +55,7 @@ func (u *User) Passwd(password string) *User {
 // A PosixGroup maps to a posix user group
 type PosixGroup struct {
 	GID      int      `bson:"gid" json:"gid" ldap:"gidNumber"`
-	Name     string   `bson:"name" json:"name"  ldap:"cn"`
+	Name     string   `bson:"name" json:"name" ldap:"cn"`
 	Tags     string   `bson:"tags" json:"tags"`
 	IsActive bool     `bson:"is_active" json:"is_active"`
 	Members  []string `bson:"members" json:"members" ldap:"memberUid"`
@@ -71,4 +71,11 @@ type FilterTag struct {
 type mongoCounter struct {
 	ID  string `bson:"_id"`
 	Seq int    `bson:"seq"`
+}
+
+// A DBDump contains data exported by or
+// can be imported to tunaccount
+type DBDump struct {
+	Users       []User       `json:"users"`
+	PosixGroups []PosixGroup `json:"posix_groups"`
 }
