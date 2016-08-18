@@ -69,9 +69,34 @@ func main() {
 		},
 		{
 			Name:      "passwd",
-			Usage:     "set password of a user",
-			Action:    changePasswd,
+			Usage:     "set password of a user, default is current user",
+			Action:    cmdPasswd,
 			ArgsUsage: "[user]",
+		},
+		{
+			Name:      "useradd",
+			Usage:     "add a user",
+			Action:    cmdUseradd,
+			ArgsUsage: "<username>",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "shell, s",
+					Usage: "Login shell of the new account",
+					Value: "/bin/bash",
+				},
+				cli.StringFlag{
+					Name:  "name",
+					Usage: "Fullname of the new account (Required)",
+				},
+				cli.StringFlag{
+					Name:  "email, mail",
+					Usage: "Email address of the new account (Required)",
+				},
+				cli.StringFlag{
+					Name:  "phone, mobile",
+					Usage: "Phone number of the new account",
+				},
+			},
 		},
 	}
 

@@ -66,6 +66,7 @@ type HTTPConfig struct {
 type TUNAConfig struct {
 	MinimumUID int `toml:"minimum_uid" default:"2000"`
 	MinimumGID int `toml:"minimum_gid" default:"2000"`
+	DefaultGID int `toml:"default_gid" default:"2000"`
 }
 
 func setDefaultValues(v reflect.Value) {

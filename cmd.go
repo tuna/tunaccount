@@ -50,9 +50,9 @@ func startDaemon(c *cli.Context) error {
 	return nil
 }
 
-func changePasswd(c *cli.Context) error {
+func cmdPasswd(c *cli.Context) error {
 	if c.NArg() > 1 {
-		fmt.Println("You can only change password for one user every time")
+		fmt.Println("You can only change password for one user every time\n")
 		cli.ShowCommandHelp(c, "passwd")
 		return errors.New("Invalid arguments")
 	}
@@ -125,6 +125,53 @@ func changePasswd(c *cli.Context) error {
 	}
 
 	logger.Notice("Password updated")
+	return nil
+}
+
+func cmdUseradd(c *cli.Context) error {
+	if c.NArg() != 1 || c.String("email") == "" || c.String("name") == "" {
+		fmt.Println("Username, Name and Email is required\n")
+		cli.ShowCommandHelp(c, "useradd")
+		return errors.New("Invalid arguments")
+	}
+
+	initLogger(true, false, false)
+	cfg := prepareConfig(c.GlobalString("config"))
+
+	curUser, err := user.Current()
+	if err != nil {
+		err := errors.New("Cannot get current user")
+		logger.Error(err.Error())
+		return err
+	}
+
+	if curUser.Uid != "0" {
+		err := errors.New("Permission denied")
+		logger.Error(err.Error())
+		return err
+	}
+
+	m := getMongo()
+	defer m.Close()
+
+	user := User{
+		UID:        m.getNextSeq("uid"),
+		GID:        cfg.TUNA.DefaultGID,
+		Username:   c.Args().Get(0),
+		Name:       c.String("name"),
+		Email:      c.String("email"),
+		Phone:      c.String("phone"),
+		LoginShell: c.String("shell"),
+		IsActive:   true,
+	}
+
+	err = m.UserColl().Insert(user)
+	if err != nil {
+		logger.Errorf("Failed to add user: %s", err.Error())
+		return err
+	}
+
+	logger.Noticef("Successfully created account: %s", user.Username)
 	return nil
 }
 

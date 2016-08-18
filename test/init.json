@@ -1,0 +1,10 @@
+{
+	"groups": [
+		{"gid": 2000, "name": "users", "is_active": true}
+	],
+	"users": [
+		{"uid": 2000, "username": "zhangsan", "name": "Zhan San", "login_shell": "/bin/bash", "is_active": true, "email": "zhangsan@tuna.moe"},
+		{"uid": 2001, "username": "lisi", "name": "Li Si", "login_shell": "/bin/bash", "is_active": true, "email": "lisi@tuna.moe"},
+		{"uid": 2002, "username": "wangnima", "name": "Wang Nima", "login_shell": "/bin/bash", "is_active": true, "email": "wangnima@tuna.moe", "tags": ["test"]}
+	]
+}
