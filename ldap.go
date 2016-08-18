@@ -140,10 +140,10 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 			tag = tagRegex.FindStringSubmatch(seg)[1]
 		} else if userRegex.MatchString(seg) {
 			fields := userRegex.FindStringSubmatch(seg)
-			baseKey, baseVal = fields[0], fields[1]
+			baseKey, baseVal = fields[1], fields[2]
 		} else if groupRegex.MatchString(seg) {
 			fields := groupRegex.FindStringSubmatch(seg)
-			baseKey, baseVal = fields[0], fields[1]
+			baseKey, baseVal = fields[1], fields[2]
 		}
 	}
 
