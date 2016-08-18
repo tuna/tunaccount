@@ -53,6 +53,18 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:   "import",
+			Usage:  "import json files to tunaccount",
+			Action: importFiles,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "config, c",
+					Value: "/etc/tunaccountd.conf",
+					Usage: "specify configuration file",
+				},
+			},
+		},
 	}
 
 	app.Run(os.Args)
