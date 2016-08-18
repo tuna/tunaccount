@@ -13,6 +13,15 @@ import (
 	ldap "github.com/vjeantet/ldapserver"
 )
 
+// LDAPScope specifies searching for people or groups
+type LDAPScope uint8
+
+const (
+	ldapScopeNone LDAPScope = iota
+	ldapScopePeople
+	ldapScopeGroups
+)
+
 var (
 	tagRegex, userRegex, groupRegex *regexp.Regexp
 )
@@ -140,16 +149,12 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 		}
 	}
 
-	if ou == "" {
-		logger.Warningf("Invalid search DN")
-		return
-	}
-
 	// TODO: uid=xxx or cn=xxx should be considered in query -> filter building
-	filter := ldapQueryToBson(r.Filter(), keymap)
+	scope := ldapScopeNone
+	filter := ldapQueryToBson(r.Filter(), keymap, &scope)
 	logger.Debugf("Mongo Filter: %#v", filter)
 
-	if ou == "people" {
+	if ou == "people" || scope == ldapScopePeople {
 		users := mg.FindUsers(filter, tag)
 		for _, u := range users {
 			e := ldap.NewSearchResultEntry(fmt.Sprintf("uid=%s,ou=people,%s", u.Username, dcfg.LDAP.Suffix))
@@ -167,7 +172,7 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 			e.AddAttribute("shadowMax", "99999")
 			w.Write(e)
 		}
-	} else if ou == "groups" {
+	} else if ou == "groups" || scope == ldapScopeGroups {
 		groups := mg.FindGroups(filter, tag)
 		for _, g := range groups {
 			e := ldap.NewSearchResultEntry(fmt.Sprintf("cn=%s,ou=groups,%s", g.Name, dcfg.LDAP.Suffix))
@@ -178,7 +183,13 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 			}
 			e.AddAttribute("objectClass", "top")
 			e.AddAttribute("objectClass", "posixGroup")
+			w.Write(e)
 		}
+	} else {
+		logger.Warning(
+			"Cannot determine query scope. Base DN: %s, filter: %s",
+			r.BaseObject(), r.FilterString(),
+		)
 	}
 
 	res := ldap.NewSearchResultDoneResponse(ldap.LDAPResultSuccess)
