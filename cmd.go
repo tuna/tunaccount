@@ -24,8 +24,8 @@ func prepareConfig(cfgFile string) (*DaemonConfig, error) {
 }
 
 func startDaemon(c *cli.Context) error {
-	initLogger(true, true, false)
-	cfg, err := prepareConfig(c.String("config"))
+	initLogger(true, c.Bool("debug"), false)
+	cfg, err := prepareConfig(c.GlobalString("config"))
 	if err != nil {
 		logger.Panic(err.Error())
 	}
@@ -46,8 +46,8 @@ func startDaemon(c *cli.Context) error {
 }
 
 func importFiles(c *cli.Context) error {
-	initLogger(true, true, false)
-	_, err := prepareConfig(c.String("config"))
+	initLogger(true, false, false)
+	_, err := prepareConfig(c.GlobalString("config"))
 	if err != nil {
 		logger.Panic(err.Error())
 	}
