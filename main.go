@@ -68,33 +68,130 @@ func main() {
 			ArgsUsage: "[files...]",
 		},
 		{
-			Name:      "passwd",
-			Usage:     "set password of a user, default is current user",
-			Action:    cmdPasswd,
-			ArgsUsage: "[user]",
+			Name:  "user",
+			Usage: "user management",
+			Subcommands: []cli.Command{
+				{
+					Name:    "list",
+					Usage:   "list users",
+					Aliases: []string{"ls"},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "tag, t",
+							Usage: "tag",
+						},
+					},
+				},
+				{
+					Name:      "add",
+					Usage:     "add a user",
+					Action:    cmdUseradd,
+					ArgsUsage: "<username>",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "shell, s",
+							Usage: "Login shell of the new account",
+							Value: "/bin/bash",
+						},
+						cli.StringFlag{
+							Name:  "name",
+							Usage: "Fullname of the new account (Required)",
+						},
+						cli.StringFlag{
+							Name:  "email, mail",
+							Usage: "Email address of the new account (Required)",
+						},
+						cli.StringFlag{
+							Name:  "phone, mobile",
+							Usage: "Phone number of the new account",
+						},
+					},
+				},
+				{
+					Name:      "passwd",
+					Usage:     "set password of a user, default is current user",
+					Action:    cmdPasswd,
+					ArgsUsage: "[username]",
+				},
+				{
+					Name:      "modify",
+					Usage:     "modify user infomation",
+					Aliases:   []string{"mod"},
+					ArgsUsage: "<username>",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "shell, s",
+							Usage: "Login shell of the new account",
+							Value: "/bin/bash",
+						},
+						cli.StringFlag{
+							Name:  "name",
+							Usage: "Fullname of the new account (Required)",
+						},
+						cli.StringFlag{
+							Name:  "email, mail",
+							Usage: "Email address of the new account (Required)",
+						},
+						cli.StringFlag{
+							Name:  "phone, mobile",
+							Usage: "Phone number of the new account",
+						},
+					},
+				},
+				{
+					Name:      "del",
+					Usage:     "delete a user",
+					ArgsUsage: "<username>",
+				},
+			},
 		},
 		{
-			Name:      "useradd",
-			Usage:     "add a user",
-			Action:    cmdUseradd,
-			ArgsUsage: "<username>",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "shell, s",
-					Usage: "Login shell of the new account",
-					Value: "/bin/bash",
+			Name:  "group",
+			Usage: "group management",
+			Subcommands: []cli.Command{
+				{
+					Name:    "list",
+					Aliases: []string{"ls"},
+					Usage:   "list groups",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "tag, t",
+							Usage: "tag",
+						},
+					},
 				},
-				cli.StringFlag{
-					Name:  "name",
-					Usage: "Fullname of the new account (Required)",
+				{
+					Name:    "new",
+					Aliases: []string{"add"},
+					Usage:   "create a group",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "tag, t",
+							Usage: "group tag",
+						},
+					},
 				},
-				cli.StringFlag{
-					Name:  "email, mail",
-					Usage: "Email address of the new account (Required)",
+				{
+					Name:      "adduser",
+					Usage:     "add a user to a group",
+					ArgsUsage: "<username> <groupname>",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "tag, t",
+							Usage: "group tag",
+						},
+					},
 				},
-				cli.StringFlag{
-					Name:  "phone, mobile",
-					Usage: "Phone number of the new account",
+				{
+					Name:      "deluser",
+					Usage:     "del users from a group",
+					ArgsUsage: "<username> <groupname>",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "tag, t",
+							Usage: "group tag",
+						},
+					},
 				},
 			},
 		},
@@ -103,8 +200,9 @@ func main() {
 			Usage: "tag management",
 			Subcommands: []cli.Command{
 				{
-					Name:  "new",
-					Usage: "add new tag",
+					Name:    "new",
+					Aliases: []string{"add"},
+					Usage:   "add new tag",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "desc, d",
@@ -113,21 +211,15 @@ func main() {
 					},
 				},
 				{
+					Name:    "list",
+					Aliases: []string{"ls"},
+					Usage:   "list tags",
+				},
+				{
 					Name:      "user",
 					Usage:     "tag users",
 					ArgsUsage: "<users>",
 					Action:    cmdTagUser,
-					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name:  "tag, t",
-							Usage: "tag name (Required)",
-						},
-					},
-				},
-				{
-					Name:      "group",
-					Usage:     "tag groups",
-					ArgsUsage: "<groups>",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "tag, t",
