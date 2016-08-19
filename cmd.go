@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"os/user"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/dgiagio/getpass"
@@ -101,7 +102,7 @@ func importFiles(c *cli.Context) error {
 func cmdUseradd(c *cli.Context) error {
 	if c.NArg() != 1 || c.String("email") == "" || c.String("name") == "" {
 		fmt.Println("Username, Name and Email are required\n")
-		cli.ShowCommandHelp(c, "useradd")
+		cli.ShowCommandHelp(c, "add")
 		return errors.New("Invalid arguments")
 	}
 
@@ -217,6 +218,140 @@ func cmdPasswd(c *cli.Context) error {
 }
 
 // Group Management commands
+
+func cmdGroupList(c *cli.Context) error {
+	tag := c.String("tag")
+
+	initLogger(true, false, false)
+	if err := isRootUser(); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+	prepareConfig(c.GlobalString("config"))
+	m := getMongo()
+	defer m.Close()
+
+	groups := []PosixGroup{}
+	m.PosixGroupColl().
+		Find(bson.M{"is_active": true, "tag": tag}).
+		Sort("gid").
+		All(&groups)
+	for _, group := range groups {
+		fmt.Printf(
+			"%d:%s: %s\n", group.GID,
+			group.Name, strings.Join(group.Members, ","),
+		)
+	}
+	return nil
+}
+
+func cmdGroupAdd(c *cli.Context) error {
+	if c.NArg() < 1 {
+		fmt.Println("Group name is required\n")
+		cli.ShowCommandHelp(c, "add")
+		return errors.New("Invalid arguments")
+	}
+	tag := c.String("tag")
+	if tag == "" {
+		logger.Warning("You are trying to create a universal group, confirm? (yes)")
+		var confirm string
+		fmt.Scanln(&confirm)
+		if confirm != "yes" {
+			logger.Notice("cancelled.")
+			return nil
+		}
+	}
+
+	initLogger(true, false, false)
+	if err := isRootUser(); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	prepareConfig(c.GlobalString("config"))
+
+	m := getMongo()
+	defer m.Close()
+
+	groupname := c.Args().Get(0)
+
+	group := PosixGroup{
+		GID:      m.getNextSeq("gid"),
+		Name:     groupname,
+		IsActive: true,
+		Tag:      tag,
+	}
+	err := m.PosixGroupColl().Insert(group)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+	logger.Noticef("added group %s", groupname)
+	return nil
+}
+
+func cmdGroupAddUser(c *cli.Context) error {
+	if c.NArg() < 2 {
+		fmt.Println("Group name and username is required\n")
+		cli.ShowCommandHelp(c, "adduser")
+		return errors.New("Invalid arguments")
+	}
+	tag := c.String("tag")
+	if tag == "" {
+		logger.Warning("You are trying to add member to a universal group, confirm? (yes)")
+		var confirm string
+		fmt.Scanln(&confirm)
+		if confirm != "yes" {
+			logger.Notice("cancelled.")
+			return nil
+		}
+	}
+
+	initLogger(true, false, false)
+	if err := isRootUser(); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	prepareConfig(c.GlobalString("config"))
+
+	m := getMongo()
+	defer m.Close()
+
+	username := c.Args().Get(0)
+	groupname := c.Args().Get(1)
+
+	selector := bson.M{
+		"name":      c.Args().Get(1),
+		"tag":       tag,
+		"is_active": true,
+	}
+
+	if cnt, err := m.PosixGroupColl().Find(selector).Count(); err != nil {
+		logger.Error(err.Error())
+		return err
+	} else if cnt != 1 {
+		err = fmt.Errorf("Not an exactly-one match for groups: %s [tag: %s]", groupname, tag)
+		logger.Error(err.Error())
+		return err
+	}
+
+	users := m.FindUsers(bson.M{"username": username}, "")
+	if len(users) < 1 {
+		err := fmt.Errorf("No such user: %s", username)
+		logger.Error(err.Error())
+		return err
+	}
+
+	err := m.PosixGroupColl().
+		Update(selector, bson.M{"$addToSet": bson.M{"members": username}})
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+	logger.Noticef("user %s added to group %s", username, groupname)
+	return nil
+}
 
 // Tag Management commands
 

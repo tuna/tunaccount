@@ -156,7 +156,7 @@ func main() {
 					Name:    "list",
 					Aliases: []string{"ls"},
 					Usage:   "list groups",
-					Action:  cmdNotImplemented,
+					Action:  cmdGroupList,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "tag, t",
@@ -168,7 +168,7 @@ func main() {
 					Name:    "new",
 					Aliases: []string{"add"},
 					Usage:   "create a group",
-					Action:  cmdNotImplemented,
+					Action:  cmdGroupAdd,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "tag, t",
@@ -180,7 +180,7 @@ func main() {
 					Name:      "adduser",
 					Usage:     "add a user to a group",
 					ArgsUsage: "<username> <groupname>",
-					Action:    cmdNotImplemented,
+					Action:    cmdGroupAddUser,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "tag, t",

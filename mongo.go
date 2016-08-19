@@ -103,7 +103,10 @@ func (m *mongoCtx) FindGroups(filter bson.M, tag string) []PosixGroup {
 		bson.M{"tag": bson.M{"$in": []string{tag, ""}}},
 	}
 
-	m.PosixGroupColl().Find(bson.M{"$and": filters}).All(&results)
+	err := m.PosixGroupColl().Find(bson.M{"$and": filters}).All(&results)
+	if err != nil {
+		logger.Error(err.Error())
+	}
 	return results
 }
 

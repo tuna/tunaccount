@@ -1,5 +1,5 @@
 {
-	"groups": [
+	"posix_groups": [
 		{"gid": 2000, "name": "users", "is_active": true}
 	],
 	"users": [
