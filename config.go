@@ -31,10 +31,11 @@ func (b *dbBackendEnum) UnmarshalText(text []byte) error {
 
 // A DaemonConfig represents configurations for tunasccount daemon
 type DaemonConfig struct {
-	DB   DatabaseConfig `toml:"database"`
-	LDAP LDAPConfig     `toml:"ldap"`
-	HTTP HTTPConfig     `toml:"http"`
-	TUNA TUNAConfig     `toml:"tunaccount"`
+	ReadOnly bool           `toml:"read_only"`
+	DB       DatabaseConfig `toml:"database"`
+	LDAP     LDAPConfig     `toml:"ldap"`
+	HTTP     HTTPConfig     `toml:"http"`
+	TUNA     TUNAConfig     `toml:"tunaccount"`
 }
 
 // A DatabaseConfig is the database config for tunaccount daemon
@@ -42,10 +43,11 @@ type DatabaseConfig struct {
 	Backend  dbBackendEnum     `toml:"backend"`
 	Addr     string            `toml:"addr" default:"127.0.0.1"`
 	Port     int               `toml:"port" default:"27017"`
+	Addrs    []string          `toml:"addrs"` // addr and port can be overrided by addrs
 	Name     string            `toml:"name" default:"tunaccount"`
 	User     string            `toml:"user"`
 	Password string            `toml:"password"`
-	Options  map[string]string `toml:"options"`
+	Options  map[string]string `toml:"options"` // database specific options
 }
 
 // An LDAPConfig is ldap server configs

@@ -240,13 +240,26 @@ func (m *mongoCtx) ensureCounterMin(ID string, val int) {
 func initMongo() error {
 
 	c := dcfg.DB
-	url := ""
-	if c.User != "" && c.Password != "" {
-		url = url + fmt.Sprintf("%s:%s@", c.User, c.Password)
+	dialInfo := &mgo.DialInfo{
+		Addrs:          []string{fmt.Sprintf("%s:%d", c.Addr, c.Port)},
+		Direct:         true,
+		Database:       c.Name,
+		ReplicaSetName: c.Options["replica_set"],
+		FailFast:       true,
+		PoolLimit:      128,
 	}
-	url = url + fmt.Sprintf("%s:%d/%s", c.Addr, c.Port, c.Name)
+	if len(c.Addrs) > 0 {
+		dialInfo.Addrs = c.Addrs
+	}
+	if c.User != "" && c.Password != "" {
+		dialInfo.Username = c.User
+		dialInfo.Password = c.Password
+	}
 
-	session, err := mgo.Dial(url)
+	logger.Debugf("dbconfig: %#v", c)
+	logger.Debugf("dialInfo: %#v", dialInfo)
+
+	session, err := mgo.DialWithInfo(dialInfo)
 	if err != nil {
 		return err
 	}
@@ -254,6 +267,12 @@ func initMongo() error {
 	_mongo = &mongoCtx{
 		session: session,
 		dbname:  c.Name,
+	}
+
+	// don't need to init data in read-only mode
+	if dcfg.ReadOnly {
+		session.SetMode(mgo.Monotonic, false)
+		return nil
 	}
 
 	// init indexes
