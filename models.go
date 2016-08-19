@@ -20,6 +20,10 @@ var groupldap2bson = map[string]string{
 	"gidNumber": "gid",
 	"cn":        "name",
 }
+var ldapIntegerFields = map[string]bool{
+	"gidNumber": true,
+	"uidNumber": true,
+}
 
 // A User is a tuna account
 type User struct {

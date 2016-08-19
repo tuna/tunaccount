@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 
 	ldapMsg "github.com/vjeantet/goldap/message"
 	"gopkg.in/mgo.v2"
@@ -166,19 +167,36 @@ func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string) bson.M {
 		}
 	case ldapMsg.FilterEqualityMatch:
 		lkey := string(f.AttributeDesc())
-		// attributes not listed in the keymap is ignored
+		lval := string(f.AssertionValue())
 		if key, ok := keymap[lkey]; ok {
-			res[key] = f.AssertionValue()
+			if ldapIntegerFields[lkey] {
+				val, _ := strconv.Atoi(lval)
+				res[key] = val
+			} else {
+				res[key] = lval
+			}
 		}
 	case ldapMsg.FilterGreaterOrEqual:
 		lkey := string(f.AttributeDesc())
+		lval := string(f.AssertionValue())
 		if key, ok := keymap[lkey]; ok {
-			res[key] = bson.M{"$gte": f.AssertionValue()}
+			if ldapIntegerFields[lkey] {
+				val, _ := strconv.Atoi(lval)
+				res[key] = bson.M{"$gte": val}
+			} else {
+				res[key] = bson.M{"$gte": lval}
+			}
 		}
 	case ldapMsg.FilterLessOrEqual:
 		lkey := string(f.AttributeDesc())
+		lval := string(f.AssertionValue())
 		if key, ok := keymap[lkey]; ok {
-			res[key] = bson.M{"$lte": f.AssertionValue()}
+			if ldapIntegerFields[lkey] {
+				val, _ := strconv.Atoi(lval)
+				res[key] = bson.M{"$lte": val}
+			} else {
+				res[key] = bson.M{"$lte": lval}
+			}
 		}
 	}
 	return res
