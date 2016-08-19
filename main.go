@@ -75,6 +75,7 @@ func main() {
 					Name:    "list",
 					Usage:   "list users",
 					Aliases: []string{"ls"},
+					Action:  cmdNotImplemented,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "tag, t",
@@ -117,6 +118,7 @@ func main() {
 					Name:      "modify",
 					Usage:     "modify user infomation",
 					Aliases:   []string{"mod"},
+					Action:    cmdNotImplemented,
 					ArgsUsage: "<username>",
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -141,6 +143,7 @@ func main() {
 				{
 					Name:      "del",
 					Usage:     "delete a user",
+					Action:    cmdNotImplemented,
 					ArgsUsage: "<username>",
 				},
 			},
@@ -153,6 +156,7 @@ func main() {
 					Name:    "list",
 					Aliases: []string{"ls"},
 					Usage:   "list groups",
+					Action:  cmdNotImplemented,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "tag, t",
@@ -164,6 +168,7 @@ func main() {
 					Name:    "new",
 					Aliases: []string{"add"},
 					Usage:   "create a group",
+					Action:  cmdNotImplemented,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "tag, t",
@@ -175,6 +180,7 @@ func main() {
 					Name:      "adduser",
 					Usage:     "add a user to a group",
 					ArgsUsage: "<username> <groupname>",
+					Action:    cmdNotImplemented,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "tag, t",
@@ -186,6 +192,7 @@ func main() {
 					Name:      "deluser",
 					Usage:     "del users from a group",
 					ArgsUsage: "<username> <groupname>",
+					Action:    cmdNotImplemented,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "tag, t",
@@ -203,6 +210,7 @@ func main() {
 					Name:    "new",
 					Aliases: []string{"add"},
 					Usage:   "add new tag",
+					Action:  cmdNotImplemented,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  "desc, d",
@@ -213,6 +221,7 @@ func main() {
 				{
 					Name:    "list",
 					Aliases: []string{"ls"},
+					Action:  cmdNotImplemented,
 					Usage:   "list tags",
 				},
 				{

@@ -39,6 +39,11 @@ func isRootUser() error {
 	return nil
 }
 
+func cmdNotImplemented(c *cli.Context) error {
+	fmt.Println(`This command is not yet implemented (-_-)`)
+	return nil
+}
+
 func startDaemon(c *cli.Context) error {
 	initLogger(true, c.Bool("debug"), false)
 	logger.Notice("Debug mode: %v", c.Bool("debug"))
