@@ -44,6 +44,8 @@ func cmdNotImplemented(c *cli.Context) error {
 	return nil
 }
 
+// System commands
+
 func startDaemon(c *cli.Context) error {
 	initLogger(true, c.Bool("debug"), false)
 	logger.Notice("Debug mode: %v", c.Bool("debug"))
@@ -63,6 +65,76 @@ func startDaemon(c *cli.Context) error {
 	close(ch)
 
 	server.Stop()
+	return nil
+}
+
+func importFiles(c *cli.Context) error {
+	initLogger(true, false, false)
+	prepareConfig(c.GlobalString("config"))
+
+	if c.NArg() < 1 {
+		logger.Error("At least 1 file should be specified")
+		return errors.New("Invalid arguments")
+	}
+
+	if err := isRootUser(); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	m := getMongo()
+	defer m.Close()
+
+	for _, file := range c.Args() {
+		err := importJSON(file, m)
+		if err != nil {
+			logger.Errorf("Error importing %s: %s", file, err.Error())
+		} else {
+			logger.Notice("Successfully imported %s", file)
+		}
+	}
+	return nil
+}
+
+// User Management commands
+
+func cmdUseradd(c *cli.Context) error {
+	if c.NArg() != 1 || c.String("email") == "" || c.String("name") == "" {
+		fmt.Println("Username, Name and Email are required\n")
+		cli.ShowCommandHelp(c, "useradd")
+		return errors.New("Invalid arguments")
+	}
+
+	initLogger(true, false, false)
+
+	if err := isRootUser(); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	cfg := prepareConfig(c.GlobalString("config"))
+
+	m := getMongo()
+	defer m.Close()
+
+	user := User{
+		UID:        m.getNextSeq("uid"),
+		GID:        cfg.TUNA.DefaultGID,
+		Username:   c.Args().Get(0),
+		Name:       c.String("name"),
+		Email:      c.String("email"),
+		Phone:      c.String("phone"),
+		LoginShell: c.String("shell"),
+		IsActive:   true,
+	}
+
+	err := m.UserColl().Insert(user)
+	if err != nil {
+		logger.Errorf("Failed to add user: %s", err.Error())
+		return err
+	}
+
+	logger.Noticef("Successfully created account: %s", user.Username)
 	return nil
 }
 
@@ -144,45 +216,9 @@ func cmdPasswd(c *cli.Context) error {
 	return nil
 }
 
-func cmdUseradd(c *cli.Context) error {
-	if c.NArg() != 1 || c.String("email") == "" || c.String("name") == "" {
-		fmt.Println("Username, Name and Email are required\n")
-		cli.ShowCommandHelp(c, "useradd")
-		return errors.New("Invalid arguments")
-	}
+// Group Management commands
 
-	initLogger(true, false, false)
-
-	if err := isRootUser(); err != nil {
-		logger.Error(err.Error())
-		return err
-	}
-
-	cfg := prepareConfig(c.GlobalString("config"))
-
-	m := getMongo()
-	defer m.Close()
-
-	user := User{
-		UID:        m.getNextSeq("uid"),
-		GID:        cfg.TUNA.DefaultGID,
-		Username:   c.Args().Get(0),
-		Name:       c.String("name"),
-		Email:      c.String("email"),
-		Phone:      c.String("phone"),
-		LoginShell: c.String("shell"),
-		IsActive:   true,
-	}
-
-	err := m.UserColl().Insert(user)
-	if err != nil {
-		logger.Errorf("Failed to add user: %s", err.Error())
-		return err
-	}
-
-	logger.Noticef("Successfully created account: %s", user.Username)
-	return nil
-}
+// Tag Management commands
 
 func cmdTagUser(c *cli.Context) error {
 	if c.NArg() < 1 || c.String("tag") == "" {
@@ -224,32 +260,4 @@ func cmdTagUser(c *cli.Context) error {
 
 	return nil
 
-}
-
-func importFiles(c *cli.Context) error {
-	initLogger(true, false, false)
-	prepareConfig(c.GlobalString("config"))
-
-	if c.NArg() < 1 {
-		logger.Error("At least 1 file should be specified")
-		return errors.New("Invalid arguments")
-	}
-
-	if err := isRootUser(); err != nil {
-		logger.Error(err.Error())
-		return err
-	}
-
-	m := getMongo()
-	defer m.Close()
-
-	for _, file := range c.Args() {
-		err := importJSON(file, m)
-		if err != nil {
-			logger.Errorf("Error importing %s: %s", file, err.Error())
-		} else {
-			logger.Notice("Successfully imported %s", file)
-		}
-	}
-	return nil
 }
