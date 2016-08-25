@@ -173,6 +173,8 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 			e := ldap.NewSearchResultEntry(fmt.Sprintf("uid=%s,ou=people,%s", u.Username, dcfg.LDAP.Suffix))
 			e.AddAttribute("uid", ldapMsg.AttributeValue(u.Username))
 			e.AddAttribute("cn", ldapMsg.AttributeValue(u.Username))
+			e.AddAttribute("mail", ldapMsg.AttributeValue(u.Email))
+			e.AddAttribute("gecos", ldapMsg.AttributeValue(u.Name))
 			e.AddAttribute("uidNumber", ldapMsg.AttributeValue(strconv.Itoa(u.UID)))
 			e.AddAttribute("gidNumber", ldapMsg.AttributeValue(strconv.Itoa(u.GID)))
 			e.AddAttribute("loginShell", ldapMsg.AttributeValue(u.LoginShell))
@@ -181,7 +183,6 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 			e.AddAttribute("objectClass", "top")
 			e.AddAttribute("objectClass", "posixAccount")
 			e.AddAttribute("objectClass", "shadowAccount")
-			e.AddAttribute("gecos", ldapMsg.AttributeValue(u.Name))
 			e.AddAttribute("shadowMax", "99999")
 			w.Write(e)
 		}
