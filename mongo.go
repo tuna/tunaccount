@@ -240,16 +240,21 @@ func (m *mongoCtx) ensureCounterMin(ID string, val int) {
 func initMongo() error {
 
 	c := dcfg.DB
+	var addrs []string
+
+	if len(c.Addrs) > 0 {
+		addrs = c.Addrs
+	} else {
+		addrs = []string{fmt.Sprintf("%s:%d", c.Addr, c.Port)}
+	}
+
 	dialInfo := &mgo.DialInfo{
-		Addrs:          []string{fmt.Sprintf("%s:%d", c.Addr, c.Port)},
-		Direct:         true,
+		Addrs:          addrs,
+		Direct:         false,
 		Database:       c.Name,
 		ReplicaSetName: c.Options["replica_set"],
 		FailFast:       true,
 		PoolLimit:      128,
-	}
-	if len(c.Addrs) > 0 {
-		dialInfo.Addrs = c.Addrs
 	}
 	if c.User != "" && c.Password != "" {
 		dialInfo.Username = c.User
