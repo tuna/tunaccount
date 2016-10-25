@@ -71,6 +71,11 @@ type TUNAConfig struct {
 	DefaultGID int `toml:"default_gid" default:"2000"`
 }
 
+// A ClientConfig specifies configurations for tunaccount cli client
+type ClientConfig struct {
+	ServerURL string `toml:"server_url"`
+}
+
 func setDefaultValues(v reflect.Value) {
 	for i := 0; i < v.NumField(); i++ {
 		vf := v.Field(i)

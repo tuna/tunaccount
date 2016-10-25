@@ -47,6 +47,17 @@ func main() {
 			Usage:  "specify configuration file",
 			EnvVar: "TUNACCOUNT_CONFIG_FILE",
 		},
+		cli.StringFlag{
+			Name:   "server-url",
+			Value:  "http://127.0.0.1:9501",
+			Usage:  "tunaccount HTTP base-url",
+			EnvVar: "TUNACCOUNT_SERVER_URL",
+		},
+		cli.BoolFlag{
+			Name:   "debug",
+			Usage:  "enable debug",
+			EnvVar: "TUNACCOUNT_DEBUG",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -58,6 +69,10 @@ func main() {
 				cli.BoolFlag{
 					Name:  "debug",
 					Usage: "enable debug",
+				},
+				cli.StringFlag{
+					Name:  "root-password",
+					Usage: "Temporary root password, only used for initilization",
 				},
 			},
 		},

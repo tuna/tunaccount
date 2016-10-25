@@ -1,12 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"os/user"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -53,8 +54,11 @@ func startDaemon(c *cli.Context) error {
 
 	cfg := prepareConfig(c.GlobalString("config"))
 
+	httpListenAddr := fmt.Sprintf("%s:%d", cfg.HTTP.ListenAddr, cfg.HTTP.ListenPort)
+	runHTTPServer(httpListenAddr, cfg.HTTP.SecretKey, c.String("root-password"))
+
 	ldapListenAddr := fmt.Sprintf("%s:%d", cfg.LDAP.ListenAddr, cfg.LDAP.ListenPort)
-	logger.Debugf("Listen LDAP Addr: %s", ldapListenAddr)
+	logger.Noticef("Listen LDAP Addr: %s", ldapListenAddr)
 
 	server := makeLDAPServer(ldapListenAddr)
 
@@ -146,8 +150,13 @@ func cmdPasswd(c *cli.Context) error {
 		return errors.New("Invalid arguments")
 	}
 
-	initLogger(true, false, false)
-	prepareConfig(c.GlobalString("config"))
+	baseURL := c.GlobalString("server-url")
+	debug := c.GlobalBool("debug")
+	passwdURL := fmt.Sprintf("%s/api/v1/admin/passwd", baseURL)
+
+	initLogger(true, debug, false)
+
+	logger.Debugf("using base url: %s", baseURL)
 
 	curUser, err := user.Current()
 	if err != nil {
@@ -163,36 +172,27 @@ func cmdPasswd(c *cli.Context) error {
 		username = curUser.Username
 	}
 
-	m := getMongo()
-	defer m.Close()
-
-	// make sure user exists
-	selector := bson.M{"username": username}
-	users := m.FindUsers(selector, "")
-	if len(users) == 0 {
-		err := fmt.Errorf("No such user: %s", username)
+	updateUser, err := user.Lookup(username)
+	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 
-	// make sure user has permission
-	user := users[0]
-	if curUser.Uid != "0" && curUser.Uid != strconv.Itoa(user.UID) {
+	if curUser.Uid != "0" && curUser.Uid != updateUser.Uid {
 		err := fmt.Errorf("Permission denied (you cannot change other people's password)")
 		logger.Error(err.Error())
 		return err
 	}
 
-	logger.Noticef("Changing password for %s", username)
+	var loginUser, loginPass string
 
-	// root does not need to type current password
 	if curUser.Uid != "0" {
-		curPass, _ := getpass.GetPassword("Current Password: ")
-		if !user.Authenticate(curPass) {
-			err := errors.New("Wrong password")
-			logger.Error(err.Error())
-			return err
-		}
+		loginUser = curUser.Username
+		loginPass, _ = getpass.GetPassword("Current Password: ")
+	} else {
+		fmt.Print("Admin username: ")
+		fmt.Scanln(&loginUser)
+		loginPass, _ = getpass.GetPassword("Admin Passowrd: ")
 	}
 
 	// get password twice
@@ -205,12 +205,36 @@ func cmdPasswd(c *cli.Context) error {
 		return err
 	}
 
-	user.Passwd(confirmPass)
-	err = m.UserColl().
-		Update(selector, bson.M{"$set": bson.M{"password": user.Password}})
+	logger.Noticef("Changing password for %s", username)
+
+	token, err := clientLogin(baseURL, loginUser, loginPass)
 	if err != nil {
-		logger.Errorf("Failed to update password: %s", err.Error())
+		logger.Error(err.Error())
+		logger.Notice("Password unchanged")
 		return err
+	}
+
+	r, err := postJSON(passwdURL, passwdForm{username, newPass}, token.Token)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	var resp apiResp
+	if err = json.Unmarshal(body, &resp); err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	if r.StatusCode >= 400 {
+		logger.Errorf("Failed to update password: %s", resp.Msg)
+		return nil
 	}
 
 	logger.Notice("Password updated")
