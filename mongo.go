@@ -172,6 +172,8 @@ func ldapQueryToBson(filter ldapMsg.Filter, keymap map[string]string) bson.M {
 			if ldapIntegerFields[lkey] {
 				val, _ := strconv.Atoi(lval)
 				res[key] = val
+			} else if ldapListFields[lkey] {
+				res[key] = bson.M{"$elemMatch": bson.M{key: lval}}
 			} else {
 				res[key] = lval
 			}
