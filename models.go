@@ -19,6 +19,7 @@ var userldap2bson = map[string]string{
 var groupldap2bson = map[string]string{
 	"gidNumber": "gid",
 	"cn":        "name",
+	"memberUid": "members",
 }
 var ldapIntegerFields = map[string]bool{
 	"gidNumber": true,
