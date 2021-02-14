@@ -11,9 +11,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/dgiagio/getpass"
+	"github.com/hackerzgz/getpass"
+	"github.com/urfave/cli"
 	"gopkg.in/mgo.v2/bson"
-	"gopkg.in/urfave/cli.v1"
 )
 
 func prepareConfig(cfgFile string) *DaemonConfig {
@@ -105,7 +105,7 @@ func importFiles(c *cli.Context) error {
 
 func cmdUseradd(c *cli.Context) error {
 	if c.NArg() != 1 || c.String("email") == "" || c.String("name") == "" {
-		fmt.Println("Username, Name and Email are required\n")
+		fmt.Println("Username, Name and Email are required")
 		cli.ShowCommandHelp(c, "add")
 		return errors.New("Invalid arguments")
 	}
@@ -145,7 +145,7 @@ func cmdUseradd(c *cli.Context) error {
 
 func cmdPasswd(c *cli.Context) error {
 	if c.NArg() > 1 {
-		fmt.Println("You can only change password for one user every time\n")
+		fmt.Println("You can only change password for one user every time")
 		cli.ShowCommandHelp(c, "passwd")
 		return errors.New("Invalid arguments")
 	}
@@ -271,7 +271,7 @@ func cmdGroupList(c *cli.Context) error {
 
 func cmdGroupAdd(c *cli.Context) error {
 	if c.NArg() < 1 {
-		fmt.Println("Group name is required\n")
+		fmt.Println("Group name is required")
 		cli.ShowCommandHelp(c, "add")
 		return errors.New("Invalid arguments")
 	}
@@ -316,7 +316,7 @@ func cmdGroupAdd(c *cli.Context) error {
 
 func cmdGroupAddUser(c *cli.Context) error {
 	if c.NArg() < 2 {
-		fmt.Println("Group name and username is required\n")
+		fmt.Println("Group name and username is required")
 		cli.ShowCommandHelp(c, "adduser")
 		return errors.New("Invalid arguments")
 	}
@@ -381,7 +381,7 @@ func cmdGroupAddUser(c *cli.Context) error {
 
 func cmdTagUser(c *cli.Context) error {
 	if c.NArg() < 1 || c.String("tag") == "" {
-		fmt.Println("Username and tag are required\n")
+		fmt.Println("Username and tag are required")
 		cli.ShowCommandHelp(c, "user")
 		return errors.New("Invalid arguments")
 	}

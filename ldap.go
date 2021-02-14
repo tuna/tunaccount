@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	ldapMsg "github.com/vjeantet/goldap/message"
+	ldapMsg "github.com/lor00x/goldap/message"
 	ldap "github.com/vjeantet/ldapserver"
 )
 

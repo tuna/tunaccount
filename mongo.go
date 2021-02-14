@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strconv"
 
-	ldapMsg "github.com/vjeantet/goldap/message"
+	ldapMsg "github.com/lor00x/goldap/message"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )

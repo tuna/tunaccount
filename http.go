@@ -1,13 +1,19 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/appleboy/gin-jwt.v2"
 	"gopkg.in/mgo.v2/bson"
 )
+
+type login struct {
+	Username string `form:"username" json:"username" binding:"required"`
+	Password string `form:"password" json:"password" binding:"required"`
+}
 
 func runHTTPServer(listenAddr, secretKey, rootPwd string) {
 	r := gin.Default()
@@ -28,11 +34,18 @@ func runHTTPServer(listenAddr, secretKey, rootPwd string) {
 		Key:        []byte(secretKey),
 		Timeout:    time.Hour,
 		MaxRefresh: time.Hour * 24,
-		Authenticator: func(username string, password string, c *gin.Context) (string, bool) {
+		Authenticator: func(c *gin.Context) (interface{}, error) {
+			var loginVals login
+			if err := c.ShouldBind(&loginVals); err != nil {
+				return "", jwt.ErrMissingLoginValues
+			}
+			username := loginVals.Username
+			password := loginVals.Password
+
 			if rootPwd != "" {
 				if username == "root" && rootPwd == password {
 					c.Set("user", rootUser)
-					return username, true
+					return username, nil
 				}
 			}
 
@@ -40,16 +53,21 @@ func runHTTPServer(listenAddr, secretKey, rootPwd string) {
 			defer m.Close()
 			users := m.FindUsers(bson.M{"username": username}, "")
 			if len(users) != 1 {
-				return username, false
+				return username, errors.New("Wrong user or password")
 			}
 			user := users[0]
 			if !user.Authenticate(password) {
-				return "", false
+				return "", errors.New("Wrong user or password")
 			}
 			c.Set("user", user)
-			return username, true
+			return username, nil
 		},
-		Authorizator: func(username string, c *gin.Context) bool {
+		Authorizator: func(data interface{}, c *gin.Context) bool {
+			username, ok := data.(string)
+			if !ok {
+				return false
+			}
+
 			if username == "root" {
 				c.Set("user", rootUser)
 				return true
