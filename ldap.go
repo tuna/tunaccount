@@ -180,9 +180,7 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 			e.AddAttribute("loginShell", ldapMsg.AttributeValue(u.LoginShell))
 			e.AddAttribute("homeDirectory", ldapMsg.AttributeValue(fmt.Sprintf("/home/%s", u.Username)))
 			e.AddAttribute("userPassword", ldapMsg.AttributeValue(u.Password))
-			e.AddAttribute("objectClass", "top")
-			e.AddAttribute("objectClass", "posixAccount")
-			e.AddAttribute("objectClass", "shadowAccount")
+			e.AddAttribute("objectClass", "top", "posixAccount", "shadowAccount")
 			e.AddAttribute("shadowMax", "99999")
 			w.Write(e)
 		}
@@ -192,11 +190,12 @@ func handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 			e := ldap.NewSearchResultEntry(fmt.Sprintf("cn=%s,ou=groups,%s", g.Name, dcfg.LDAP.Suffix))
 			e.AddAttribute("cn", ldapMsg.AttributeValue(g.Name))
 			e.AddAttribute("gidNumber", ldapMsg.AttributeValue(strconv.Itoa(g.GID)))
+			members := []ldapMsg.AttributeValue{}
 			for _, username := range g.Members {
-				e.AddAttribute("memberUid", ldapMsg.AttributeValue(username))
+				members = append(members, ldapMsg.AttributeValue(username))
 			}
-			e.AddAttribute("objectClass", "top")
-			e.AddAttribute("objectClass", "posixGroup")
+			e.AddAttribute("memberUid", members...)
+			e.AddAttribute("objectClass", "top", "posixGroup")
 			w.Write(e)
 		}
 	}
