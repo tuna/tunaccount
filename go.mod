@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/appleboy/gin-jwt/v2 v2.6.4
-	github.com/gin-gonic/gin v1.7.7
+	github.com/gin-gonic/gin v1.9.1
 	github.com/hackerzgz/getpass v0.0.0-20141221021026-ee9b272d8147
 	github.com/lor00x/goldap v0.0.0-20180618054307-a546dffdd1a3
 	github.com/smartystreets/goconvey v1.6.4
